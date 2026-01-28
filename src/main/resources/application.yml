@@ -1,0 +1,83 @@
+server:
+  port: ${SERVER_PORT:8080}
+  servlet:
+    context-path: /api
+
+spring:
+  application:
+    name: activitypub-listener
+  
+  data:
+    mongodb:
+      uri: ${MONGODB_URI:mongodb://localhost:27017/activitypub_listener}
+      database: ${MONGODB_DATABASE:activitypub_listener}
+      auto-index-creation: true
+  
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      acks: all
+      retries: 3
+      properties:
+        enable.idempotence: true
+    consumer:
+      group-id: ${KAFKA_CONSUMER_GROUP_ID:activitypub-listener}
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      auto-offset-reset: earliest
+      enable-auto-commit: false
+      properties:
+        spring.json.trusted.packages: "*"
+
+# Application Configuration
+activitypub:
+  user-agent: ${ACTIVITYPUB_USER_AGENT:ActivityPubListener/1.0}
+  default-rate-limit: ${ACTIVITYPUB_DEFAULT_RATE_LIMIT:300}
+  request-timeout: ${ACTIVITYPUB_REQUEST_TIMEOUT:30000}
+
+social:
+  listening:
+    max-date-range-days: ${MAX_DATE_RANGE_DAYS:30}
+    max-monitors-per-user: ${MAX_MONITORS_PER_USER:100}
+
+kafka:
+  topics:
+    tracker-new: ${KAFKA_TOPIC_TRACKER_NEW:tracker-new}
+    social-listening: ${KAFKA_TOPIC_SOCIAL_LISTENING:social-listening}
+    activities: ${KAFKA_TOPIC_ACTIVITIES:activities}
+  consumer-groups:
+    frontend: ${KAFKA_CONSUMER_GROUP_FRONTEND:frontend-consumer}
+    analytics: ${KAFKA_CONSUMER_GROUP_ANALYTICS:analytics-consumer}
+
+jwt:
+  public-key: ${JWT_PUBLIC_KEY:}
+  issuer: ${JWT_ISSUER:AMRITECH}
+
+# API Versioning
+api:
+  version:
+    header: ${API_VERSION_HEADER:API-Version}
+    default: ${API_VERSION_DEFAULT:v1}
+
+# Actuator
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: when-authorized
+
+# Logging
+logging:
+  level:
+    root: ${LOGGING_LEVEL_ROOT:INFO}
+    com.activitypub: ${LOGGING_LEVEL_COM_ACTIVITYPUB:DEBUG}
+    org.springframework.web: INFO
+    org.springframework.data.mongodb.core: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
