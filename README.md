@@ -5,7 +5,7 @@ A REST API service for social listening and monitoring of ActivityPub/Fediverse 
 ## 🎯 Overview
 
 ActivityPub Listener is a Spring Boot-based service that enables organizations to:
-- Monitor keywords, accounts, and regions across Fediverse instances
+- Monitor keywords, accounts, instances, and regions across Fediverse instances
 - Collect and analyze ActivityPub activities in real-time
 - Retrieve analytics and insights from monitored content
 - Manage monitoring configurations via REST API
@@ -302,15 +302,18 @@ Monitor content containing specific keywords across Fediverse instances.
 - Topic monitoring
 - Trend analysis
 
-### 2. Account Analysis Monitor
-Monitor specific actors (users, groups, communities) and their activities.
+### 2. Account Monitor
+Monitor specific users and their activities.
 
 **Use Cases**:
 - Competitor monitoring
 - Influencer tracking
 - Community analysis
 
-### 3. Regional Monitor
+
+### 3. Instance Monitors
+
+### 4. Regional Monitor
 Monitor content based on geographic regions (if location data is available).
 
 **Use Cases**:
@@ -335,7 +338,7 @@ src/
 │   │       ├── exception/
 │   │       └── activitypub/
 │   └── resources/
-│       ├── application.yml
+│       ├── application.properties
 │       └── db/migration/
 └── test/
 ```
