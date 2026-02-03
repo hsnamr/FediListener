@@ -11,7 +11,7 @@ import java.util.List;
 import java.util.Optional;
 
 @Repository
-public interface MonitorRepository extends MongoRepository<Monitor, String> {
+public interface MonitorRepository extends MongoRepository<Monitor, String>, MonitorRepositoryCustom {
     
     @Query("{ 'isDeleted': false }")
     Page<Monitor> findByNotDeleted(Pageable pageable);

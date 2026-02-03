@@ -76,9 +76,9 @@ ActivityPub polling works for at least one instance type; activities flow to Kaf
 
 ---
 
-## Phase 3: Monitor Types & Lifecycle (Business Logic)
+## Phase 3: Monitor Types & Lifecycle (Business Logic) ✅
 
-**Goal:** Implement monitor-type-specific behavior and full lifecycle (approval, pause/resume, collection control).
+**Goal:** Implement monitor-type-specific behavior and full lifecycle (approval, pause/resume, collection control). *Implemented.*
 
 ### 3.1 Monitor Type–Specific Logic
 

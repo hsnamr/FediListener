@@ -66,7 +66,10 @@ public class Monitor {
     
     @Builder.Default
     private List<Regional> regionals = new ArrayList<>();
-    
+
+    @Builder.Default
+    private List<ManagedAccount> managedAccounts = new ArrayList<>();
+
     @CreatedDate
     private LocalDateTime createdAt;
     

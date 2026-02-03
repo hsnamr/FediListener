@@ -14,6 +14,9 @@ public class ActivityPubKafkaProducer {
     @Value("${kafka.topics.tracker-new:tracker-new}")
     private String trackerNewTopic;
 
+    @Value("${kafka.topics.monitor-lifecycle:monitor-lifecycle}")
+    private String monitorLifecycleTopic;
+
     @Value("${kafka.topics.activities:activities}")
     private String activitiesTopic;
 
@@ -40,6 +43,18 @@ public class ActivityPubKafkaProducer {
                         log.error("Failed to send activity to {}: {}", activitiesTopic, ex.getMessage());
                     } else {
                         log.debug("Sent activity to {}: {}", activitiesTopic, message.getActivityId());
+                    }
+                });
+    }
+
+    public void sendMonitorLifecycle(MonitorLifecycleMessage message) {
+        String key = message.getMonitorId() != null ? message.getMonitorId() : "unknown";
+        kafkaTemplate.send(monitorLifecycleTopic, key, message)
+                .whenComplete((result, ex) -> {
+                    if (ex != null) {
+                        log.error("Failed to send monitor lifecycle to {}: {}", monitorLifecycleTopic, ex.getMessage());
+                    } else {
+                        log.debug("Sent monitor lifecycle to {}: {} {}", monitorLifecycleTopic, message.getMonitorId(), message.getAction());
                     }
                 });
     }

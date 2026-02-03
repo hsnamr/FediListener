@@ -17,6 +17,7 @@ public class MonitorDTO {
     private String id;
     private String name;
     private MonitorTypeDTO monitorType;
+    private Long companyId;
     private Long userId;
     private Long productId;
     private Boolean isDeleted;

@@ -431,11 +431,15 @@ See [LICENSE](LICENSE) file for details.
   - [x] Kafka integration for activity streaming and tracker config (tracker-new)
   - [x] Instance management (list, CRUD, health check)
   - [x] API alignment: GET /api/actors/discover, GET /api/actors/{id}/activities, POST /api/actors/{id}/poll
-- [ ] Phase 3: Monitor Types & Business Logic
-  - [ ] Keyword monitor implementation
-  - [ ] Account analysis monitor
-  - [ ] Regional monitor
-  - [ ] Monitor lifecycle management
+- [x] **Phase 3: Monitor Types & Business Logic** ✅
+  - [x] Keyword monitor (matching + spam filtering via ActivityFilterService)
+  - [x] Account analysis monitor (follow/excluded accounts)
+  - [x] Regional monitor (MBR placeholder; ActivityFilterService)
+  - [x] Monitor lifecycle (approve/reject endpoints, Kafka monitor-lifecycle)
+  - [x] List monitors: filters (monitor_type_id, product_id, data_source_id, is_approved, paused) and sort (id, name, created_at, monitor_type, status, etc.)
+  - [x] MonitorDTO: companyId, dataSources from all monitor types
+  - [x] ManagedAccount/ManagedPage support in create/update
+  - [x] GET /api/monitors/{id}/activities
 - [ ] Phase 4: Social Listening Data & Analytics
   - [ ] Social listening API endpoints
   - [ ] Analytics integration

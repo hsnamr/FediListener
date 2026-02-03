@@ -7,7 +7,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -38,19 +37,26 @@ public class MonitorController {
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int perPage,
             @RequestParam(required = false) String search,
+            @RequestParam(required = false) String monitorTypeId,
+            @RequestParam(required = false) Long productId,
+            @RequestParam(required = false) String dataSourceId,
+            @RequestParam(required = false) String isApproved,
+            @RequestParam(required = false) Boolean paused,
             @RequestParam(required = false) String sortBy,
             @RequestParam(defaultValue = "asc") String orderBy) {
-        
-        Sort sort = Sort.by(sortBy != null ? sortBy : "createdAt");
-        if ("desc".equalsIgnoreCase(orderBy)) {
-            sort = sort.descending();
-        } else {
-            sort = sort.ascending();
+
+        Pageable pageable = PageRequest.of(page - 1, Math.min(perPage, 100));
+        com.activitypub.listener.model.Monitor.ApprovalStatus approvalStatus = null;
+        if (isApproved != null && !isApproved.isEmpty()) {
+            try {
+                approvalStatus = com.activitypub.listener.model.Monitor.ApprovalStatus.valueOf(isApproved.toUpperCase());
+            } catch (IllegalArgumentException ignored) {
+                // leave null if invalid
+            }
         }
-        
-        Pageable pageable = PageRequest.of(page - 1, Math.min(perPage, 100), sort);
-        PaginationResponse<MonitorDTO> monitors = monitorService.listMonitors(pageable, search);
-        
+        PaginationResponse<MonitorDTO> monitors = monitorService.listMonitors(
+                pageable, search, monitorTypeId, productId, dataSourceId, approvalStatus, paused, sortBy, orderBy);
+
         ApiResponse<PaginationResponse<MonitorDTO>> response = ApiResponse.<PaginationResponse<MonitorDTO>>builder()
                 .data(monitors)
                 .build();
@@ -60,14 +66,24 @@ public class MonitorController {
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<MonitorDTO>> getMonitor(
             @PathVariable String id) {
-        
+
         MonitorDTO monitor = monitorService.getMonitor(id);
         ApiResponse<MonitorDTO> response = ApiResponse.<MonitorDTO>builder()
                 .data(monitor)
                 .build();
         return ResponseEntity.ok(response);
     }
-    
+
+    @GetMapping("/{id}/activities")
+    public ResponseEntity<ApiResponse<PaginationResponse<CollectedActivityDTO>>> getMonitorActivities(
+            @PathVariable String id,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "20") int perPage) {
+
+        PaginationResponse<CollectedActivityDTO> data = monitorService.getActivitiesForMonitor(id, page, perPage);
+        return ResponseEntity.ok(ApiResponse.<PaginationResponse<CollectedActivityDTO>>builder().data(data).build());
+    }
+
     @PutMapping("/{id}")
     public ResponseEntity<ApiResponse<MonitorDTO>> updateMonitor(
             @PathVariable String id,
@@ -104,12 +120,34 @@ public class MonitorController {
     @PostMapping("/{id}/resume")
     public ResponseEntity<ApiResponse<MonitorDTO>> resumeMonitor(
             @PathVariable String id) {
-        
+
         MonitorDTO monitor = monitorService.resumeMonitor(id);
         ApiResponse<MonitorDTO> response = ApiResponse.<MonitorDTO>builder()
                 .data(monitor)
                 .message("Monitor resumed successfully")
                 .build();
         return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/{id}/approve")
+    public ResponseEntity<ApiResponse<MonitorDTO>> approveMonitor(
+            @PathVariable String id) {
+
+        MonitorDTO monitor = monitorService.approveMonitor(id);
+        return ResponseEntity.ok(ApiResponse.<MonitorDTO>builder()
+                .data(monitor)
+                .message("Monitor approved successfully")
+                .build());
+    }
+
+    @PostMapping("/{id}/reject")
+    public ResponseEntity<ApiResponse<MonitorDTO>> rejectMonitor(
+            @PathVariable String id) {
+
+        MonitorDTO monitor = monitorService.rejectMonitor(id);
+        return ResponseEntity.ok(ApiResponse.<MonitorDTO>builder()
+                .data(monitor)
+                .message("Monitor rejected successfully")
+                .build());
     }
 }

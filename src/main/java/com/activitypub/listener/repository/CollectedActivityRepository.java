@@ -20,5 +20,7 @@ public interface CollectedActivityRepository extends MongoRepository<CollectedAc
     List<CollectedActivity> findByActorIdAndPublishedAtAfterOrderByPublishedAtDesc(
             String actorId, LocalDateTime since, Pageable pageable);
 
+    Page<CollectedActivity> findByMonitorIdOrderByPublishedAtDesc(String monitorId, Pageable pageable);
+
     boolean existsByActivityId(String activityId);
 }
