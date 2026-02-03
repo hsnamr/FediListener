@@ -28,12 +28,16 @@ public class MonitorRepositoryImpl implements MonitorRepositoryCustom {
             String dataSourceId,
             Monitor.ApprovalStatus isApproved,
             Boolean paused,
+            Long userId,
             String sortBy,
             String orderBy,
             Pageable pageable) {
 
         Criteria criteria = Criteria.where("isDeleted").is(false);
 
+        if (userId != null) {
+            criteria.and("userId").is(userId);
+        }
         if (search != null && !search.trim().isEmpty()) {
             criteria.and("name").regex(Pattern.quote(search.trim()), "i");
         }

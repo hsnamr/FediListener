@@ -24,4 +24,6 @@ public interface MonitorRepository extends MongoRepository<Monitor, String>, Mon
     List<Monitor> findByIsDeletedFalseAndPausedFalseAndIsApproved(
         Monitor.ApprovalStatus isApproved
     );
+
+    long countByUserIdAndIsDeletedFalse(Long userId);
 }

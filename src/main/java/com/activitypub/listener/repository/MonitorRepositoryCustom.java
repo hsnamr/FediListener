@@ -16,6 +16,7 @@ public interface MonitorRepositoryCustom {
             String dataSourceId,
             Monitor.ApprovalStatus isApproved,
             Boolean paused,
+            Long userId,
             String sortBy,
             String orderBy,
             Pageable pageable

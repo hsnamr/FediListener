@@ -2,6 +2,7 @@ package com.activitypub.listener.controller;
 
 import com.activitypub.listener.dto.*;
 import com.activitypub.listener.service.MonitorService;
+import com.activitypub.listener.service.SavedFilterService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -11,19 +12,22 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/monitors")
 @RequiredArgsConstructor
 @Slf4j
 public class MonitorController {
-    
+
     private final MonitorService monitorService;
+    private final SavedFilterService savedFilterService;
     
     @PostMapping
     public ResponseEntity<ApiResponse<MonitorDTO>> createMonitor(
             @Valid @RequestBody CreateMonitorDTO dto,
-            @RequestHeader("X-User-Id") Long userId) {
-        
+            @RequestHeader(value = "X-User-Id", required = false) Long headerUserId) {
+        Long userId = SecurityUtils.getCurrentUserId() != null ? SecurityUtils.getCurrentUserId() : headerUserId;
         MonitorDTO monitor = monitorService.createMonitor(dto, userId);
         ApiResponse<MonitorDTO> response = ApiResponse.<MonitorDTO>builder()
                 .data(monitor)
@@ -43,8 +47,10 @@ public class MonitorController {
             @RequestParam(required = false) String isApproved,
             @RequestParam(required = false) Boolean paused,
             @RequestParam(required = false) String sortBy,
-            @RequestParam(defaultValue = "asc") String orderBy) {
+            @RequestParam(defaultValue = "asc") String orderBy,
+            @RequestHeader(value = "X-User-Id", required = false) Long headerUserId) {
 
+        Long userId = SecurityUtils.getCurrentUserId() != null ? SecurityUtils.getCurrentUserId() : headerUserId;
         Pageable pageable = PageRequest.of(page - 1, Math.min(perPage, 100));
         com.activitypub.listener.model.Monitor.ApprovalStatus approvalStatus = null;
         if (isApproved != null && !isApproved.isEmpty()) {
@@ -55,7 +61,7 @@ public class MonitorController {
             }
         }
         PaginationResponse<MonitorDTO> monitors = monitorService.listMonitors(
-                pageable, search, monitorTypeId, productId, dataSourceId, approvalStatus, paused, sortBy, orderBy);
+                pageable, search, monitorTypeId, productId, dataSourceId, approvalStatus, paused, userId, sortBy, orderBy);
 
         ApiResponse<PaginationResponse<MonitorDTO>> response = ApiResponse.<PaginationResponse<MonitorDTO>>builder()
                 .data(monitors)
@@ -65,9 +71,10 @@ public class MonitorController {
     
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<MonitorDTO>> getMonitor(
-            @PathVariable String id) {
-
-        MonitorDTO monitor = monitorService.getMonitor(id);
+            @PathVariable String id,
+            @RequestHeader(value = "X-User-Id", required = false) Long headerUserId) {
+        Long userId = SecurityUtils.getCurrentUserId() != null ? SecurityUtils.getCurrentUserId() : headerUserId;
+        MonitorDTO monitor = monitorService.getMonitor(id, userId);
         ApiResponse<MonitorDTO> response = ApiResponse.<MonitorDTO>builder()
                 .data(monitor)
                 .build();
@@ -78,18 +85,20 @@ public class MonitorController {
     public ResponseEntity<ApiResponse<PaginationResponse<CollectedActivityDTO>>> getMonitorActivities(
             @PathVariable String id,
             @RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "20") int perPage) {
-
-        PaginationResponse<CollectedActivityDTO> data = monitorService.getActivitiesForMonitor(id, page, perPage);
+            @RequestParam(defaultValue = "20") int perPage,
+            @RequestHeader(value = "X-User-Id", required = false) Long headerUserId) {
+        Long userId = SecurityUtils.getCurrentUserId() != null ? SecurityUtils.getCurrentUserId() : headerUserId;
+        PaginationResponse<CollectedActivityDTO> data = monitorService.getActivitiesForMonitor(id, page, perPage, userId);
         return ResponseEntity.ok(ApiResponse.<PaginationResponse<CollectedActivityDTO>>builder().data(data).build());
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<ApiResponse<MonitorDTO>> updateMonitor(
             @PathVariable String id,
-            @Valid @RequestBody UpdateMonitorDTO dto) {
-        
-        MonitorDTO monitor = monitorService.updateMonitor(id, dto);
+            @Valid @RequestBody UpdateMonitorDTO dto,
+            @RequestHeader(value = "X-User-Id", required = false) Long headerUserId) {
+        Long userId = SecurityUtils.getCurrentUserId() != null ? SecurityUtils.getCurrentUserId() : headerUserId;
+        MonitorDTO monitor = monitorService.updateMonitor(id, dto, userId);
         ApiResponse<MonitorDTO> response = ApiResponse.<MonitorDTO>builder()
                 .data(monitor)
                 .message("Monitor updated successfully")
@@ -99,9 +108,10 @@ public class MonitorController {
     
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteMonitor(
-            @PathVariable String id) {
-        
-        monitorService.deleteMonitor(id);
+            @PathVariable String id,
+            @RequestHeader(value = "X-User-Id", required = false) Long headerUserId) {
+        Long userId = SecurityUtils.getCurrentUserId() != null ? SecurityUtils.getCurrentUserId() : headerUserId;
+        monitorService.deleteMonitor(id, userId);
         return ResponseEntity.noContent().build();
     }
     
@@ -119,9 +129,10 @@ public class MonitorController {
     
     @PostMapping("/{id}/resume")
     public ResponseEntity<ApiResponse<MonitorDTO>> resumeMonitor(
-            @PathVariable String id) {
-
-        MonitorDTO monitor = monitorService.resumeMonitor(id);
+            @PathVariable String id,
+            @RequestHeader(value = "X-User-Id", required = false) Long headerUserId) {
+        Long userId = SecurityUtils.getCurrentUserId() != null ? SecurityUtils.getCurrentUserId() : headerUserId;
+        MonitorDTO monitor = monitorService.resumeMonitor(id, userId);
         ApiResponse<MonitorDTO> response = ApiResponse.<MonitorDTO>builder()
                 .data(monitor)
                 .message("Monitor resumed successfully")
@@ -131,9 +142,10 @@ public class MonitorController {
 
     @PostMapping("/{id}/approve")
     public ResponseEntity<ApiResponse<MonitorDTO>> approveMonitor(
-            @PathVariable String id) {
-
-        MonitorDTO monitor = monitorService.approveMonitor(id);
+            @PathVariable String id,
+            @RequestHeader(value = "X-User-Id", required = false) Long headerUserId) {
+        Long userId = SecurityUtils.getCurrentUserId() != null ? SecurityUtils.getCurrentUserId() : headerUserId;
+        MonitorDTO monitor = monitorService.approveMonitor(id, userId);
         return ResponseEntity.ok(ApiResponse.<MonitorDTO>builder()
                 .data(monitor)
                 .message("Monitor approved successfully")
@@ -142,12 +154,36 @@ public class MonitorController {
 
     @PostMapping("/{id}/reject")
     public ResponseEntity<ApiResponse<MonitorDTO>> rejectMonitor(
-            @PathVariable String id) {
-
-        MonitorDTO monitor = monitorService.rejectMonitor(id);
+            @PathVariable String id,
+            @RequestHeader(value = "X-User-Id", required = false) Long headerUserId) {
+        Long userId = SecurityUtils.getCurrentUserId() != null ? SecurityUtils.getCurrentUserId() : headerUserId;
+        MonitorDTO monitor = monitorService.rejectMonitor(id, userId);
         return ResponseEntity.ok(ApiResponse.<MonitorDTO>builder()
                 .data(monitor)
                 .message("Monitor rejected successfully")
                 .build());
+    }
+
+    @GetMapping("/{id}/filters")
+    public ResponseEntity<ApiResponse<List<SavedFilterDTO>>> getFilters(
+            @PathVariable String id,
+            @RequestHeader(value = "X-User-Id", required = false) Long userId) {
+
+        List<SavedFilterDTO> filters = savedFilterService.getFilters(id, userId);
+        return ResponseEntity.ok(ApiResponse.<List<SavedFilterDTO>>builder().data(filters).build());
+    }
+
+    @PostMapping("/{id}/filters")
+    public ResponseEntity<ApiResponse<SavedFilterDTO>> saveFilter(
+            @PathVariable String id,
+            @RequestHeader(value = "X-User-Id", required = false) Long headerUserId,
+            @Valid @RequestBody CreateSavedFilterDTO dto) {
+        Long userId = SecurityUtils.getCurrentUserId() != null ? SecurityUtils.getCurrentUserId() : headerUserId;
+        SavedFilterDTO saved = savedFilterService.saveFilter(id, userId, dto);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.<SavedFilterDTO>builder()
+                        .data(saved)
+                        .message("Filter saved successfully")
+                        .build());
     }
 }

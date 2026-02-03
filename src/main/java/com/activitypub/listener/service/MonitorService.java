@@ -16,6 +16,7 @@ import com.activitypub.listener.repository.CollectedActivityRepository;
 import com.activitypub.listener.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -38,10 +39,20 @@ public class MonitorService {
     private final MonitorMapper monitorMapper;
     private final ActivityPubKafkaProducer kafkaProducer;
     private final CollectedActivityRepository collectedActivityRepository;
-    
+
+    @Value("${social.listening.max-monitors-per-user:100}")
+    private int maxMonitorsPerUser;
+
     public MonitorDTO createMonitor(CreateMonitorDTO dto, Long userId) {
         log.info("Creating monitor: {} for user: {}", dto.getName(), userId);
-        
+
+        if (userId != null) {
+            long count = monitorRepository.countByUserIdAndIsDeletedFalse(userId);
+            if (count >= maxMonitorsPerUser) {
+                throw new IllegalStateException("Monitor limit exceeded (max: " + maxMonitorsPerUser + " per user)");
+            }
+        }
+
         MonitorType monitorType = monitorTypeRepository.findById(dto.getMonitorTypeId())
                 .orElseThrow(() -> new ResourceNotFoundException("Monitor type not found: " + dto.getMonitorTypeId()));
         
@@ -81,10 +92,11 @@ public class MonitorService {
             String dataSourceId,
             Monitor.ApprovalStatus isApproved,
             Boolean paused,
+            Long userId,
             String sortBy,
             String orderBy) {
         Page<Monitor> monitors = monitorRepository.findMonitors(
-                search, monitorTypeId, productId, dataSourceId, isApproved, paused,
+                search, monitorTypeId, productId, dataSourceId, isApproved, paused, userId,
                 sortBy, orderBy, pageable);
 
         List<MonitorDTO> monitorDTOs = monitors.getContent().stream()
@@ -104,16 +116,23 @@ public class MonitorService {
                 .build();
     }
     
-    public MonitorDTO getMonitor(String id) {
+    public MonitorDTO getMonitor(String id, Long userId) {
         Monitor monitor = monitorRepository.findByIdAndIsDeletedFalse(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Monitor not found: " + id));
-        
+        ensureOwnership(monitor, userId);
         return monitorMapper.toDTO(monitor);
     }
-    
-    public MonitorDTO updateMonitor(String id, UpdateMonitorDTO dto) {
+
+    private void ensureOwnership(Monitor monitor, Long userId) {
+        if (userId != null && monitor.getUserId() != null && !monitor.getUserId().equals(userId)) {
+            throw new IllegalStateException("Monitor does not belong to user");
+        }
+    }
+
+    public MonitorDTO updateMonitor(String id, UpdateMonitorDTO dto, Long userId) {
         Monitor monitor = monitorRepository.findByIdAndIsDeletedFalse(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Monitor not found: " + id));
+        ensureOwnership(monitor, userId);
         
         if (dto.getName() != null) {
             monitor.setName(dto.getName());
@@ -178,19 +197,19 @@ public class MonitorService {
         }
     }
     
-    public void deleteMonitor(String id) {
+    public void deleteMonitor(String id, Long userId) {
         Monitor monitor = monitorRepository.findByIdAndIsDeletedFalse(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Monitor not found: " + id));
-        
+        ensureOwnership(monitor, userId);
         monitor.setIsDeleted(true);
         monitorRepository.save(monitor);
         log.info("Monitor soft deleted: {}", id);
     }
     
-    public MonitorDTO pauseMonitor(String id) {
+    public MonitorDTO pauseMonitor(String id, Long userId) {
         Monitor monitor = monitorRepository.findByIdAndIsDeletedFalse(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Monitor not found: " + id));
-        
+        ensureOwnership(monitor, userId);
         monitor.setPaused(true);
         monitor = monitorRepository.save(monitor);
         log.info("Monitor paused: {}", id);
@@ -213,9 +232,10 @@ public class MonitorService {
         return monitorMapper.toDTO(monitor);
     }
 
-    public MonitorDTO approveMonitor(String id) {
+    public MonitorDTO approveMonitor(String id, Long userId) {
         Monitor monitor = monitorRepository.findByIdAndIsDeletedFalse(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Monitor not found: " + id));
+        if (userId != null) ensureOwnership(monitor, userId);
 
         Monitor.ApprovalStatus previous = monitor.getIsApproved();
         if (previous == Monitor.ApprovalStatus.APPROVED) {
@@ -238,10 +258,10 @@ public class MonitorService {
         return monitorMapper.toDTO(monitor);
     }
 
-    public PaginationResponse<CollectedActivityDTO> getActivitiesForMonitor(String monitorId, int page, int perPage) {
-        if (!monitorRepository.existsById(monitorId)) {
-            throw new ResourceNotFoundException("Monitor not found: " + monitorId);
-        }
+    public PaginationResponse<CollectedActivityDTO> getActivitiesForMonitor(String monitorId, int page, int perPage, Long userId) {
+        Monitor monitor = monitorRepository.findByIdAndIsDeletedFalse(monitorId)
+                .orElseThrow(() -> new ResourceNotFoundException("Monitor not found: " + monitorId));
+        ensureOwnership(monitor, userId);
         Pageable pageable = PageRequest.of(page - 1, Math.min(perPage, 100));
         Page<CollectedActivity> p = collectedActivityRepository.findByMonitorIdOrderByPublishedAtDesc(monitorId, pageable);
         List<CollectedActivityDTO> dtos = p.getContent().stream()
@@ -276,10 +296,10 @@ public class MonitorService {
                 .build();
     }
 
-    public MonitorDTO rejectMonitor(String id) {
+    public MonitorDTO rejectMonitor(String id, Long userId) {
         Monitor monitor = monitorRepository.findByIdAndIsDeletedFalse(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Monitor not found: " + id));
-
+        if (userId != null) ensureOwnership(monitor, userId);
         Monitor.ApprovalStatus previous = monitor.getIsApproved();
         boolean wasApproved = previous == Monitor.ApprovalStatus.APPROVED;
         Monitor.ApprovalStatus newStatus = wasApproved ? Monitor.ApprovalStatus.APPROVED_REJECTED : Monitor.ApprovalStatus.UNAPPROVED_REJECTED;
