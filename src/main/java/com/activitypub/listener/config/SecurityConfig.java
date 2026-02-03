@@ -47,6 +47,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> {
                     auth.requestMatchers("/actuator/**").permitAll();
                     auth.requestMatchers("/public-api/**").permitAll();
+                    auth.requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll();
                     auth.requestMatchers("/error").permitAll();
                     if (jwtPublicKey != null && !jwtPublicKey.isBlank()) {
                         auth.anyRequest().authenticated();
