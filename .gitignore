@@ -1,3 +1,7 @@
+# Markdown files (except README.md)
+*.md
+!README.md
+# Explicitly ignore specification file
 SPECIFICATION.md
 IMPLEMENTATION_PLAN.md
 PHASE1_COMPLETE.md
