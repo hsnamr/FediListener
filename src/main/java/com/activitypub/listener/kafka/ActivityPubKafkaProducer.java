@@ -20,6 +20,9 @@ public class ActivityPubKafkaProducer {
     @Value("${kafka.topics.activities:activities}")
     private String activitiesTopic;
 
+    @Value("${kafka.topics.social-listening:social-listening}")
+    private String socialListeningTopic;
+
     private final KafkaTemplate<String, Object> kafkaTemplate;
 
     public void sendTrackerConfig(TrackerConfigMessage message) {
@@ -43,6 +46,18 @@ public class ActivityPubKafkaProducer {
                         log.error("Failed to send activity to {}: {}", activitiesTopic, ex.getMessage());
                     } else {
                         log.debug("Sent activity to {}: {}", activitiesTopic, message.getActivityId());
+                    }
+                });
+    }
+
+    public void sendSocialListeningRequest(SocialListeningAnalyticsMessage message) {
+        String key = message.getMonitorId() != null ? message.getMonitorId() : "unknown";
+        kafkaTemplate.send(socialListeningTopic, key, message)
+                .whenComplete((result, ex) -> {
+                    if (ex != null) {
+                        log.error("Failed to send social listening request to {}: {}", socialListeningTopic, ex.getMessage());
+                    } else {
+                        log.debug("Sent social listening request to {}: {}", socialListeningTopic, key);
                     }
                 });
     }

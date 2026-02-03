@@ -440,10 +440,12 @@ See [LICENSE](LICENSE) file for details.
   - [x] MonitorDTO: companyId, dataSources from all monitor types
   - [x] ManagedAccount/ManagedPage support in create/update
   - [x] GET /api/monitors/{id}/activities
-- [ ] Phase 4: Social Listening Data & Analytics
-  - [ ] Social listening API endpoints
-  - [ ] Analytics integration
-  - [ ] Metrics and widgets support
+- [x] **Phase 4: Social Listening Data & Analytics** ✅
+  - [x] POST /api/social-listening/data (validation, Kafka send, topic + consumer_group response)
+  - [x] GET /api/social-listening/widgets?monitor_id=&data_source=&page_name=
+  - [x] ParameterPreparationService + SocialListeningAnalyticsMessage (filters as JSON)
+  - [x] Public API async: POST/GET /api/public-api/social-listening/data (job store)
+  - [x] Filters support (topics, sentiment, languages, etc.) in request and Kafka payload
 - [ ] Phase 5: Advanced Features (ActivityPub Server)
   - [ ] ActivityPub server implementation
   - [ ] Enhanced federation
