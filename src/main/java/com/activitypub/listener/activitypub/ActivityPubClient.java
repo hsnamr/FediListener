@@ -92,16 +92,22 @@ public class ActivityPubClient {
     }
     
     /**
-     * Get actor's outbox
+     * Get actor's outbox (first page).
      * GET /users/{username}/outbox?page=true
      */
     public Mono<JsonNode> getActorOutbox(String outboxUrl, boolean page) {
         String url = page ? outboxUrl + "?page=true" : outboxUrl;
-        log.debug("Retrieving actor outbox: {}", url);
-        
+        return getOutboxPage(url);
+    }
+
+    /**
+     * Fetch outbox/collection by full URL (supports first page or "next" page URL).
+     */
+    public Mono<JsonNode> getOutboxPage(String fullUrl) {
+        log.debug("Retrieving outbox page: {}", fullUrl);
         return getWebClient()
                 .get()
-                .uri(url)
+                .uri(fullUrl)
                 .header(HttpHeaders.ACCEPT, "application/activity+json, application/json")
                 .retrieve()
                 .bodyToMono(JsonNode.class)

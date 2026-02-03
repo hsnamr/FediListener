@@ -1,15 +1,24 @@
 package com.activitypub.listener.activitypub;
 
+import com.activitypub.listener.dto.CollectedActivityDTO;
+import com.activitypub.listener.dto.PaginationResponse;
 import com.activitypub.listener.model.ActivityPubActor;
+import com.activitypub.listener.model.CollectedActivity;
 import com.activitypub.listener.repository.ActivityPubActorRepository;
+import com.activitypub.listener.repository.CollectedActivityRepository;
 import com.fasterxml.jackson.databind.JsonNode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -18,6 +27,7 @@ public class ActivityPubService {
     
     private final ActivityPubClient activityPubClient;
     private final ActivityPubActorRepository actorRepository;
+    private final CollectedActivityRepository collectedActivityRepository;
     
     /**
      * Discover and retrieve actor information
@@ -114,5 +124,43 @@ public class ActivityPubService {
     public ActivityPubActor getActor(String actorId) {
         return actorRepository.findByActorId(actorId)
                 .orElseThrow(() -> new RuntimeException("Actor not found: " + actorId));
+    }
+
+    /**
+     * Get paginated activities for an actor (from collected_activities).
+     */
+    public PaginationResponse<CollectedActivityDTO> getActorActivities(String actorId, int page, int perPage) {
+        Pageable pageable = PageRequest.of(page - 1, Math.min(perPage, 100));
+        Page<CollectedActivity> p = collectedActivityRepository.findByActorIdOrderByPublishedAtDesc(actorId, pageable);
+        List<CollectedActivityDTO> dtos = p.getContent().stream()
+                .map(this::toCollectedActivityDTO)
+                .collect(Collectors.toList());
+        PaginationResponse.PaginationInfo info = PaginationResponse.PaginationInfo.builder()
+                .page(page)
+                .perPage(perPage)
+                .total(p.getTotalElements())
+                .totalPages(p.getTotalPages())
+                .build();
+        return PaginationResponse.<CollectedActivityDTO>builder()
+                .data(dtos)
+                .pagination(info)
+                .build();
+    }
+
+    private CollectedActivityDTO toCollectedActivityDTO(CollectedActivity a) {
+        return CollectedActivityDTO.builder()
+                .id(a.getId())
+                .activityId(a.getActivityId())
+                .activityType(a.getActivityType())
+                .actorId(a.getActorId())
+                .objectId(a.getObjectId())
+                .objectType(a.getObjectType())
+                .content(a.getContent())
+                .publishedAt(a.getPublishedAt())
+                .instanceUrl(a.getInstanceUrl())
+                .monitorId(a.getMonitorId())
+                .rawData(a.getRawData())
+                .createdAt(a.getCreatedAt())
+                .build();
     }
 }

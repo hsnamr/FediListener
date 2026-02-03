@@ -285,10 +285,36 @@ API-Version: v1
 GET /api/actors/discover?resource=acct:user@mastodon.social
 API-Version: v1
 ```
+POST `/api/actors/discover?resource=...` is also supported for backward compatibility.
+
+#### Get Actor
+```http
+GET /api/actors/{actor_id}
+API-Version: v1
+```
 
 #### Get Actor Activities
 ```http
 GET /api/actors/{actor_id}/activities?page=1&per_page=20
+API-Version: v1
+```
+
+#### Trigger Outbox Poll (collect new activities)
+```http
+POST /api/actors/{actor_id}/poll?monitorId=optional
+API-Version: v1
+```
+
+#### List Fediverse Instances
+```http
+GET /api/instances
+API-Version: v1
+```
+Optional query: `?paged=true&page=1&per_page=20`
+
+#### Instance Health Check
+```http
+GET /api/instances/{id}/health
 API-Version: v1
 ```
 
@@ -399,11 +425,12 @@ See [LICENSE](LICENSE) file for details.
   - [x] ActivityPub client integration (WebFinger, actor discovery)
   - [x] Docker Compose with MongoDB and Kafka
   - [x] Error handling and validation
-- [ ] Phase 2: ActivityPub Data Collection
-  - [ ] ActivityPub polling implementation
-  - [ ] Data collection engine
-  - [ ] Kafka integration for activity streaming
-  - [ ] Instance management
+- [x] **Phase 2: ActivityPub Data Collection** ✅
+  - [x] ActivityPub polling implementation (outbox, pagination, ActivityStreams parser)
+  - [x] Data collection (OutboxPollingService, CollectedActivity, Kafka activities topic)
+  - [x] Kafka integration for activity streaming and tracker config (tracker-new)
+  - [x] Instance management (list, CRUD, health check)
+  - [x] API alignment: GET /api/actors/discover, GET /api/actors/{id}/activities, POST /api/actors/{id}/poll
 - [ ] Phase 3: Monitor Types & Business Logic
   - [ ] Keyword monitor implementation
   - [ ] Account analysis monitor

@@ -5,6 +5,8 @@ import com.activitypub.listener.dto.MonitorDTO;
 import com.activitypub.listener.dto.PaginationResponse;
 import com.activitypub.listener.dto.UpdateMonitorDTO;
 import com.activitypub.listener.exception.ResourceNotFoundException;
+import com.activitypub.listener.kafka.ActivityPubKafkaProducer;
+import com.activitypub.listener.kafka.TrackerConfigMessage;
 import com.activitypub.listener.mapper.MonitorMapper;
 import com.activitypub.listener.model.*;
 import com.activitypub.listener.repository.*;
@@ -28,6 +30,7 @@ public class MonitorService {
     private final DataSourceRepository dataSourceRepository;
     private final KeywordRepository keywordRepository;
     private final MonitorMapper monitorMapper;
+    private final ActivityPubKafkaProducer kafkaProducer;
     
     public MonitorDTO createMonitor(CreateMonitorDTO dto, Long userId) {
         log.info("Creating monitor: {} for user: {}", dto.getName(), userId);
@@ -58,7 +61,7 @@ public class MonitorService {
         }
         
         monitor = monitorRepository.save(monitor);
-        
+        sendTrackerConfigToKafka(monitor);
         log.info("Monitor created successfully with ID: {}", monitor.getId());
         return monitorMapper.toDTO(monitor);
     }
@@ -130,9 +133,36 @@ public class MonitorService {
         }
         
         monitor = monitorRepository.save(monitor);
+        sendTrackerConfigToKafka(monitor);
         log.info("Monitor updated successfully: {}", id);
-        
         return monitorMapper.toDTO(monitor);
+    }
+
+    private void sendTrackerConfigToKafka(Monitor monitor) {
+        String monitorTypeName = monitor.getMonitorType() != null ? monitor.getMonitorType().getName() : "KEYWORD";
+        for (Keyword k : monitor.getKeywords()) {
+            TrackerConfigMessage msg = TrackerConfigMessage.builder()
+                    .trackerId(monitor.getId())
+                    .dataSourceName(k.getDataSource() != null ? k.getDataSource().getSource() : null)
+                    .monitorType(monitorTypeName)
+                    .keywords(k.getKeywords())
+                    .spamKeywords(k.getSpamKeywords())
+                    .shouldCollect(!Boolean.TRUE.equals(monitor.getPaused()) && monitor.getIsApproved() == Monitor.ApprovalStatus.APPROVED)
+                    .userId(monitor.getUserId())
+                    .build();
+            kafkaProducer.sendTrackerConfig(msg);
+        }
+        for (AccountAnalysis a : monitor.getAccountAnalyses()) {
+            TrackerConfigMessage msg = TrackerConfigMessage.builder()
+                    .trackerId(monitor.getId())
+                    .dataSourceName(a.getDataSource() != null ? a.getDataSource().getSource() : null)
+                    .monitorType(monitorTypeName)
+                    .shouldCollect(!Boolean.TRUE.equals(monitor.getPaused()) && monitor.getIsApproved() == Monitor.ApprovalStatus.APPROVED)
+                    .userId(monitor.getUserId())
+                    .extra(a.getFollow() != null ? Map.of("follow", a.getFollow()) : null)
+                    .build();
+            kafkaProducer.sendTrackerConfig(msg);
+        }
     }
     
     public void deleteMonitor(String id) {
