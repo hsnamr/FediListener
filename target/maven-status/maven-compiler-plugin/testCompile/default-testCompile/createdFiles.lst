@@ -1,0 +1,5 @@
+com/activitypub/listener/controller/MonitorControllerIntegrationTest.class
+com/activitypub/listener/service/MonitorServiceTest.class
+com/activitypub/listener/service/SocialListeningServiceTest.class
+com/activitypub/listener/service/ParameterPreparationServiceTest.class
+com/activitypub/listener/exception/GlobalExceptionHandlerTest.class

@@ -24,7 +24,8 @@ public class InstanceController {
     private final InstanceService instanceService;
 
     @GetMapping
-    public ResponseEntity<ApiResponse<List<FediverseInstanceDTO>>> list(
+    @SuppressWarnings("rawtypes")
+    public ResponseEntity<ApiResponse> list(
             @RequestParam(defaultValue = "false") boolean paged,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int perPage) {

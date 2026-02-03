@@ -42,6 +42,7 @@ public class SocialListeningService {
     private final MetricRepository metricRepository;
     private final ParameterPreparationService parameterPreparationService;
     private final ActivityPubKafkaProducer kafkaProducer;
+    private final SocialListeningJobRepository socialListeningJobRepository;
 
     /**
      * Validate request, prepare analytics message, send to Kafka, return topic/consumer group to client.
@@ -133,7 +134,7 @@ public class SocialListeningService {
                 .status("PENDING")
                 .widgetsNames(request.getWidgetsNames())
                 .build();
-        job = jobRepository.save(job);
+        job = socialListeningJobRepository.save(job);
 
         SocialListeningAnalyticsMessage message = parameterPreparationService.prepare(request, monitor);
         kafkaProducer.sendSocialListeningRequest(message);
@@ -145,7 +146,7 @@ public class SocialListeningService {
      * Get job status and optional widget data. §4.4.3
      */
     public Map<String, Object> getJobStatus(String jobId, String monitorId) {
-        SocialListeningJob job = jobRepository.findByIdAndMonitorId(jobId, monitorId)
+        SocialListeningJob job = socialListeningJobRepository.findByIdAndMonitorId(jobId, monitorId)
                 .orElseThrow(() -> new ResourceNotFoundException("Job not found: " + jobId));
 
         Map<String, Object> data = new HashMap<>();

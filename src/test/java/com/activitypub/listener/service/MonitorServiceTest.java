@@ -17,6 +17,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 
@@ -58,6 +59,7 @@ class MonitorServiceTest {
 
     @BeforeEach
     void setUp() {
+        ReflectionTestUtils.setField(monitorService, "maxMonitorsPerUser", 100);
         monitorType = MonitorType.builder().id("mt1").name("KEYWORD").build();
         dataSource = DataSource.builder().id("ds1").source("MASTODON").build();
         monitor = Monitor.builder()
@@ -85,6 +87,7 @@ class MonitorServiceTest {
     @Test
     @DisplayName("createMonitor throws when monitor type not found")
     void createMonitor_monitorTypeNotFound_throws() {
+        when(monitorRepository.countByUserIdAndIsDeletedFalse(100L)).thenReturn(0L);
         when(monitorTypeRepository.findById("mt1")).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> monitorService.createMonitor(createDto, 100L))
@@ -108,8 +111,6 @@ class MonitorServiceTest {
     @Test
     @DisplayName("createMonitor throws when user exceeds monitor quota")
     void createMonitor_quotaExceeded_throws() {
-        when(monitorTypeRepository.findById("mt1")).thenReturn(Optional.of(monitorType));
-        when(dataSourceRepository.findAllById(List.of("ds1"))).thenReturn(List.of(dataSource));
         when(monitorRepository.countByUserIdAndIsDeletedFalse(100L)).thenReturn(100L);
 
         assertThatThrownBy(() -> monitorService.createMonitor(createDto, 100L))

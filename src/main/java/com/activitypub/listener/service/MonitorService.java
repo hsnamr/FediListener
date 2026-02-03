@@ -217,18 +217,16 @@ public class MonitorService {
         return monitorMapper.toDTO(monitor);
     }
     
-    public MonitorDTO resumeMonitor(String id) {
+    public MonitorDTO resumeMonitor(String id, Long userId) {
         Monitor monitor = monitorRepository.findByIdAndIsDeletedFalse(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Monitor not found: " + id));
-
+        ensureOwnership(monitor, userId);
         if (monitor.getIsApproved() != Monitor.ApprovalStatus.APPROVED) {
             throw new IllegalStateException("Monitor must be approved before resuming");
         }
-
         monitor.setPaused(false);
         monitor = monitorRepository.save(monitor);
         log.info("Monitor resumed: {}", id);
-
         return monitorMapper.toDTO(monitor);
     }
 

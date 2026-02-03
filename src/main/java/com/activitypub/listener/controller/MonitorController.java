@@ -1,5 +1,6 @@
 package com.activitypub.listener.controller;
 
+import com.activitypub.listener.config.SecurityUtils;
 import com.activitypub.listener.dto.*;
 import com.activitypub.listener.service.MonitorService;
 import com.activitypub.listener.service.SavedFilterService;
@@ -117,9 +118,10 @@ public class MonitorController {
     
     @PostMapping("/{id}/pause")
     public ResponseEntity<ApiResponse<MonitorDTO>> pauseMonitor(
-            @PathVariable String id) {
-        
-        MonitorDTO monitor = monitorService.pauseMonitor(id);
+            @PathVariable String id,
+            @RequestHeader(value = "X-User-Id", required = false) Long headerUserId) {
+        Long userId = SecurityUtils.getCurrentUserId() != null ? SecurityUtils.getCurrentUserId() : headerUserId;
+        MonitorDTO monitor = monitorService.pauseMonitor(id, userId);
         ApiResponse<MonitorDTO> response = ApiResponse.<MonitorDTO>builder()
                 .data(monitor)
                 .message("Monitor paused successfully")
