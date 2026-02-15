@@ -6,6 +6,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 
+import java.util.Map;
+
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -22,6 +24,9 @@ public class ActivityPubKafkaProducer {
 
     @Value("${kafka.topics.social-listening:social-listening}")
     private String socialListeningTopic;
+
+    @Value("${staci.kafka.topic.dispatcher-requests:staci.dispatcher.requests}")
+    private String staciDispatcherRequestsTopic;
 
     private final KafkaTemplate<String, Object> kafkaTemplate;
 
@@ -58,6 +63,27 @@ public class ActivityPubKafkaProducer {
                         log.error("Failed to send social listening request to {}: {}", socialListeningTopic, ex.getMessage());
                     } else {
                         log.debug("Sent social listening request to {}: {}", socialListeningTopic, key);
+                    }
+                });
+    }
+
+    /**
+     * Send to Staci canonical topic staci.dispatcher.requests with eventName staci.fedi.dispatcher
+     * so GoDispatcher (or other Staci services) can consume the request.
+     */
+    public void sendStaciFediDispatcher(SocialListeningAnalyticsMessage message) {
+        String key = message.getRoutingKey() != null ? message.getRoutingKey() : message.getMonitorId();
+        if (key == null) key = "unknown";
+        Map<String, Object> envelope = Map.of(
+                "eventName", "staci.fedi.dispatcher",
+                "eventData", message
+        );
+        kafkaTemplate.send(staciDispatcherRequestsTopic, key, envelope)
+                .whenComplete((result, ex) -> {
+                    if (ex != null) {
+                        log.error("Failed to send to Staci dispatcher {}: {}", staciDispatcherRequestsTopic, ex.getMessage());
+                    } else {
+                        log.debug("Sent staci.fedi.dispatcher to {}: {}", staciDispatcherRequestsTopic, key);
                     }
                 });
     }

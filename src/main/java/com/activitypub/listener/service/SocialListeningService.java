@@ -86,6 +86,7 @@ public class SocialListeningService {
 
         SocialListeningAnalyticsMessage message = parameterPreparationService.prepare(request, monitor);
         kafkaProducer.sendSocialListeningRequest(message);
+        kafkaProducer.sendStaciFediDispatcher(message);
 
         return SocialListeningResponseDTO.builder()
                 .topic(message.getTopic())
